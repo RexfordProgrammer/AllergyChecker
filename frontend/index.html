@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#059669">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>AllergyChecker</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:        #059669;
+      --primary-dark:   #047857;
+      --primary-light:  #d1fae5;
+      --danger:         #dc2626;
+      --danger-light:   #fee2e2;
+      --success:        #16a34a;
+      --success-light:  #dcfce7;
+      --warn:           #d97706;
+      --warn-light:     #fef3c7;
+      --bg:             #f1f5f9;
+      --card:           #ffffff;
+      --text:           #1e293b;
+      --muted:          #64748b;
+      --border:         #e2e8f0;
+      --radius:         12px;
+      --shadow:         0 1px 4px rgba(0,0,0,0.08), 0 2px 12px rgba(0,0,0,0.04);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────────── */
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 0.875rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header .logo { font-size: 1.75rem; line-height: 1; }
+    header h1   { font-size: 1.2rem; font-weight: 700; letter-spacing: -0.02em; }
+    header p    { font-size: 0.75rem; opacity: 0.8; margin-top: 0.1rem; }
+
+    /* ── Layout ─────────────────────────────────────────────────────────── */
+    main {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* ── Card ───────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+    .card-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .step-badge {
+      background: var(--primary);
+      color: white;
+      border-radius: 999px;
+      width: 1.25rem;
+      height: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* ── Allergen toggles ───────────────────────────────────────────────── */
+    .allergen-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.625rem;
+    }
+    .allergen-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      user-select: none;
+      background: white;
+    }
+    .allergen-toggle:hover          { border-color: var(--primary); }
+    .allergen-toggle.active         { border-color: var(--primary); background: var(--primary-light); }
+    .allergen-toggle input          { display: none; }
+    .allergen-toggle .t-icon        { font-size: 1.5rem; line-height: 1; }
+    .allergen-toggle .t-label       { font-weight: 600; font-size: 0.9rem; }
+    .allergen-toggle .t-check {
+      margin-left: auto;
+      width: 1.1rem;
+      height: 1.1rem;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: transparent;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+    .allergen-toggle.active .t-check {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+    }
+
+    .derivatives-preview {
+      margin-top: 0.875rem;
+      padding: 0.75rem;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+    .derivatives-preview strong { color: var(--text); font-weight: 600; }
+
+    /* ── Camera area ────────────────────────────────────────────────────── */
+    .camera-area {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #0f172a;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.875rem;
+    }
+    .cam-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: #475569;
+      text-align: center;
+    }
+    .cam-placeholder .ph-icon { font-size: 3rem; }
+    .cam-placeholder p         { font-size: 0.875rem; }
+
+    #video       { width: 100%; height: 100%; object-fit: cover; }
+    #preview-img { width: 100%; height: 100%; object-fit: cover; }
+    #canvas      { display: none; }
+
+    /* ── Buttons ────────────────────────────────────────────────────────── */
+    .btn-row {
+      display: flex;
+      gap: 0.625rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      flex: 1;
+      min-width: 0;
+      padding: 0.75rem 0.875rem;
+      border-radius: 10px;
+      border: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      white-space: nowrap;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:disabled            { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary             { background: var(--primary); color: white; }
+    .btn-primary:not(:disabled):hover { background: var(--primary-dark); }
+    .btn-secondary           { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+    .btn-secondary:not(:disabled):hover { background: var(--border); }
+    .btn-lg                  { padding: 1rem 1.5rem; font-size: 1rem; border-radius: 12px; }
+    .btn-full                { width: 100%; flex: unset; }
+    .btn-file-label          { flex: 1; }  /* makes <label> behave like .btn */
+
+    /* ── Spinner / loading ──────────────────────────────────────────────── */
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .spinner {
+      width: 1.4rem; height: 1.4rem;
+      border: 2px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Results ────────────────────────────────────────────────────────── */
+    .result-headline {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .allergen-result         { margin-bottom: 1rem; }
+    .allergen-result:last-of-type { margin-bottom: 0; }
+    .allergen-result-header  {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .status-badge {
+      padding: 0.18rem 0.55rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .badge-detected { background: var(--danger-light);  color: var(--danger);  }
+    .badge-safe     { background: var(--success-light); color: var(--success); }
+
+    .chip-row        { display: flex; flex-wrap: wrap; gap: 0.375rem; }
+    .chip {
+      padding: 0.22rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+    }
+    .chip-danger     { background: var(--danger-light);  color: var(--danger);  }
+    .chip-safe       { background: var(--success-light); color: var(--success); }
+
+    .notes-box {
+      margin-top: 1rem;
+      padding: 0.875rem;
+      background: var(--warn-light);
+      border-left: 3px solid var(--warn);
+      border-radius: 0 8px 8px 0;
+      font-size: 0.84rem;
+      line-height: 1.6;
+      color: #78350f;
+    }
+    .notes-box strong { display: block; margin-bottom: 0.2rem; color: var(--warn); }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+
+    details.ocr-toggle summary {
+      cursor: pointer;
+      font-size: 0.8rem;
+      color: var(--muted);
+      user-select: none;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+    details.ocr-toggle summary::before { content: "▶"; font-size: 0.6rem; transition: transform 0.15s; }
+    details.ocr-toggle[open] summary::before { transform: rotate(90deg); }
+    .ocr-text {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 0.75rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--muted);
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    /* ── Error ──────────────────────────────────────────────────────────── */
+    .error-box {
+      padding: 1rem;
+      background: var(--danger-light);
+      border-radius: 10px;
+      color: var(--danger);
+      font-size: 0.875rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔍</div>
+  <div>
+    <h1>AllergyChecker</h1>
+    <p>Scan product labels for allergens</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- ── Step 1: Choose allergens ─────────────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">
+      <span class="step-badge">1</span>
+      Select Allergens to Check
+    </div>
+    <div class="allergen-grid" id="allergen-grid"></div>
+    <div class="derivatives-preview hidden" id="derivatives-preview"></div>
+  </div>
+
+  <!-- ── Step 2: Capture / upload image ───────────────────────────────── -->
+  <div class="card">
+    <div class="card-title">
+      <span class="step-badge">2</span>
+      Scan the Ingredients Label
+    </div>
+
+    <div class="camera-area" id="camera-area">
+      <div class="cam-placeholder" id="cam-placeholder">
+        <span class="ph-icon">📷</span>
+        <p>Open camera or upload a photo</p>
+      </div>
+      <video id="video" autoplay playsinline class="hidden"></video>
+      <img id="preview-img" class="hidden" alt="Captured label">
+      <canvas id="canvas"></canvas>
+    </div>
+
+    <!-- Default buttons: open camera or upload -->
+    <div class="btn-row" id="btn-row-default">
+      <button class="btn btn-primary" id="btn-open-camera">📷 Open Camera</button>
+      <label  class="btn btn-secondary btn-file-label" for="file-input-upload">🖼 Upload</label>
+      <input  type="file" id="file-input-upload" accept="image/*" class="hidden">
+    </div>
+
+    <!-- Buttons while live camera is active -->
+    <div class="btn-row hidden" id="btn-row-live">
+      <button class="btn btn-primary" id="btn-capture">⚪ Take Photo</button>
+      <button class="btn btn-secondary" id="btn-flip">🔄 Flip</button>
+      <button class="btn btn-secondary" id="btn-cancel-cam">✕ Cancel</button>
+    </div>
+
+    <!-- Buttons after a photo is captured -->
+    <div class="btn-row hidden" id="btn-row-retake">
+      <button class="btn btn-secondary" id="btn-retake">🔄 Retake</button>
+    </div>
+  </div>
+
+  <!-- ── Submit ────────────────────────────────────────────────────────── -->
+  <button class="btn btn-primary btn-lg btn-full" id="btn-submit" disabled>
+    🔍 Check Ingredients
+  </button>
+
+  <!-- ── Results ───────────────────────────────────────────────────────── -->
+  <div id="results-container"></div>
+
+</main>
+
+<!-- Hidden file input used as camera fallback on mobile -->
+<input type="file" id="file-input-cam-fallback" accept="image/*" capture="environment" class="hidden">
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────────────────────────────
+  // TODO: replace with your Cloud Run service URL after deploying the backend.
+  const BACKEND_URL = "https://allergy-checker-7nf7ptq6fq-uc.a.run.app";
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const ALLERGENS = {
+    corn: {
+      label: "Corn", icon: "🌽",
+      derivatives: [
+        "corn", "corn syrup", "high fructose corn syrup", "corn starch",
+        "modified food starch", "modified corn starch", "maltodextrin",
+        "dextrose", "dextrin", "glucose", "glucose syrup", "xanthan gum",
+        "citric acid", "sorbitol", "polenta", "hominy", "grits", "masa",
+        "corn flour", "cornmeal", "corn oil", "maize", "caramel color",
+        "vegetable starch"
+      ]
+    },
+    gluten: {
+      label: "Gluten", icon: "🌾",
+      derivatives: [
+        "wheat", "barley", "rye", "spelt", "kamut", "semolina", "durum",
+        "malt", "malt extract", "malt syrup", "malt flavoring", "malt vinegar",
+        "brewer's yeast", "triticale", "wheat starch", "wheat germ",
+        "wheat bran", "bulgur", "farro", "einkorn", "emmer",
+        "hydrolyzed wheat protein", "wheat protein", "vital wheat gluten",
+        "seitan", "gluten"
+      ]
+    },
+    soy: {
+      label: "Soy", icon: "🫘",
+      derivatives: [
+        "soy", "soya", "soybean", "soybeans", "soy lecithin", "lecithin",
+        "soy protein", "soy protein isolate", "soy protein concentrate",
+        "soy sauce", "tofu", "tempeh", "miso", "edamame",
+        "textured vegetable protein", "TVP", "textured soy protein",
+        "hydrolyzed soy protein", "hydrolyzed vegetable protein", "tamari"
+      ]
+    },
+    dairy: {
+      label: "Dairy", icon: "🥛",
+      derivatives: [
+        "milk", "dairy", "cheese", "butter", "cream", "lactose", "whey",
+        "casein", "lactalbumin", "lactoglobulin", "ghee", "yogurt", "yoghurt",
+        "kefir", "curds", "milk solids", "non-fat dry milk", "skim milk powder",
+        "milk protein", "sodium caseinate", "calcium caseinate",
+        "buttermilk", "sour cream", "half-and-half", "lactulose", "lactoferrin"
+      ]
+    }
+  };
+
+  // ── State ────────────────────────────────────────────────────────────────────
+  let selectedAllergens = new Set();
+  let capturedBlob      = null;
+  let cameraStream      = null;
+  let facingMode        = "environment";
+
+  // ── DOM refs ─────────────────────────────────────────────────────────────────
+  const allergenGrid      = document.getElementById("allergen-grid");
+  const derivativesEl     = document.getElementById("derivatives-preview");
+  const camPlaceholder    = document.getElementById("cam-placeholder");
+  const videoEl           = document.getElementById("video");
+  const previewImg        = document.getElementById("preview-img");
+  const canvasEl          = document.getElementById("canvas");
+  const rowDefault        = document.getElementById("btn-row-default");
+  const rowLive           = document.getElementById("btn-row-live");
+  const rowRetake         = document.getElementById("btn-row-retake");
+  const btnOpenCamera     = document.getElementById("btn-open-camera");
+  const btnCapture        = document.getElementById("btn-capture");
+  const btnFlip           = document.getElementById("btn-flip");
+  const btnCancelCam      = document.getElementById("btn-cancel-cam");
+  const btnRetake         = document.getElementById("btn-retake");
+  const fileInputUpload   = document.getElementById("file-input-upload");
+  const fileInputCamFB    = document.getElementById("file-input-cam-fallback");
+  const btnSubmit         = document.getElementById("btn-submit");
+  const resultsContainer  = document.getElementById("results-container");
+
+  // ── Allergen toggles ─────────────────────────────────────────────────────────
+  function renderToggles() {
+    allergenGrid.innerHTML = "";
+    for (const [key, a] of Object.entries(ALLERGENS)) {
+      const lbl = document.createElement("label");
+      lbl.className = "allergen-toggle" + (selectedAllergens.has(key) ? " active" : "");
+      lbl.innerHTML = `
+        <input type="checkbox" value="${key}" ${selectedAllergens.has(key) ? "checked" : ""}>
+        <span class="t-icon">${a.icon}</span>
+        <span class="t-label">${a.label}</span>
+        <span class="t-check">✓</span>`;
+      lbl.querySelector("input").addEventListener("change", e => {
+        if (e.target.checked) selectedAllergens.add(key);
+        else                   selectedAllergens.delete(key);
+        lbl.classList.toggle("active", e.target.checked);
+        refreshDerivatives();
+        refreshSubmit();
+      });
+      allergenGrid.appendChild(lbl);
+    }
+  }
+
+  function refreshDerivatives() {
+    if (selectedAllergens.size === 0) {
+      derivativesEl.classList.add("hidden");
+      return;
+    }
+    derivativesEl.classList.remove("hidden");
+    derivativesEl.innerHTML = Array.from(selectedAllergens)
+      .map(k => `<strong>${ALLERGENS[k].icon} ${ALLERGENS[k].label}:</strong> ${ALLERGENS[k].derivatives.join(", ")}`)
+      .join("<br><br>");
+  }
+
+  // ── Camera ───────────────────────────────────────────────────────────────────
+  async function startCamera() {
+    try {
+      cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: facingMode },
+          width:  { ideal: 1920 },
+          height: { ideal: 1080 }
+        }
+      });
+      videoEl.srcObject = cameraStream;
+      await videoEl.play();
+
+      camPlaceholder.classList.add("hidden");
+      previewImg.classList.add("hidden");
+      videoEl.classList.remove("hidden");
+      rowDefault.classList.add("hidden");
+      rowRetake.classList.add("hidden");
+      rowLive.classList.remove("hidden");
+      capturedBlob = null;
+      refreshSubmit();
+    } catch {
+      // Fall back to native camera via file input on mobile
+      fileInputCamFB.click();
+    }
+  }
+
+  function stopCamera() {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream = null;
+    }
+  }
+
+  function capturePhoto() {
+    canvasEl.width  = videoEl.videoWidth;
+    canvasEl.height = videoEl.videoHeight;
+    canvasEl.getContext("2d").drawImage(videoEl, 0, 0);
+    canvasEl.toBlob(blob => {
+      setPhoto(blob);
+      stopCamera();
+      videoEl.classList.add("hidden");
+      rowLive.classList.add("hidden");
+    }, "image/jpeg", 0.92);
+  }
+
+  async function flipCamera() {
+    facingMode = facingMode === "environment" ? "user" : "environment";
+    stopCamera();
+    await startCamera();
+  }
+
+  function cancelCamera() {
+    stopCamera();
+    videoEl.classList.add("hidden");
+    rowLive.classList.add("hidden");
+    rowDefault.classList.remove("hidden");
+    if (capturedBlob) {
+      previewImg.classList.remove("hidden");
+      rowRetake.classList.remove("hidden");
+    } else {
+      camPlaceholder.classList.remove("hidden");
+    }
+  }
+
+  function setPhoto(blob) {
+    capturedBlob = blob;
+    const url = URL.createObjectURL(blob);
+    previewImg.onload = () => URL.revokeObjectURL(url);
+    previewImg.src = url;
+    previewImg.classList.remove("hidden");
+    camPlaceholder.classList.add("hidden");
+    rowDefault.classList.add("hidden");
+    rowRetake.classList.remove("hidden");
+    refreshSubmit();
+  }
+
+  function retake() {
+    capturedBlob = null;
+    previewImg.classList.add("hidden");
+    rowRetake.classList.add("hidden");
+    rowDefault.classList.remove("hidden");
+    camPlaceholder.classList.remove("hidden");
+    refreshSubmit();
+  }
+
+  // File input: plain upload
+  fileInputUpload.addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setPhoto(file);
+    stopCamera();
+    videoEl.classList.add("hidden");
+    rowLive.classList.add("hidden");
+    fileInputUpload.value = "";
+  });
+
+  // File input: camera fallback (mobile)
+  fileInputCamFB.addEventListener("change", e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setPhoto(file);
+    rowDefault.classList.remove("hidden");
+    fileInputCamFB.value = "";
+  });
+
+  btnOpenCamera.addEventListener("click", startCamera);
+  btnCapture.addEventListener("click", capturePhoto);
+  btnFlip.addEventListener("click", flipCamera);
+  btnCancelCam.addEventListener("click", cancelCamera);
+  btnRetake.addEventListener("click", retake);
+
+  // ── Submit ───────────────────────────────────────────────────────────────────
+  function refreshSubmit() {
+    btnSubmit.disabled = selectedAllergens.size === 0 || !capturedBlob;
+  }
+
+  btnSubmit.addEventListener("click", async () => {
+    const allDerivatives = Array.from(selectedAllergens)
+      .flatMap(k => ALLERGENS[k].derivatives);
+
+    const form = new FormData();
+    form.append("ingredients", JSON.stringify(allDerivatives));
+    form.append("image", capturedBlob, "label.jpg");
+
+    btnSubmit.disabled = true;
+    resultsContainer.innerHTML = `
+      <div class="card">
+        <div class="loading">
+          <div class="spinner"></div>
+          <span>Scanning label with AI…</span>
+        </div>
+      </div>`;
+    resultsContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    try {
+      const resp = await fetch(`${BACKEND_URL}/check`, { method: "POST", body: form });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ detail: resp.statusText }));
+        throw new Error(err.detail || resp.statusText);
+      }
+      renderResults(await resp.json());
+    } catch (err) {
+      resultsContainer.innerHTML = `
+        <div class="card">
+          <div class="error-box">⚠️ <span>${esc(err.message)}</span></div>
+        </div>`;
+    } finally {
+      refreshSubmit();
+    }
+  });
+
+  // ── Results ──────────────────────────────────────────────────────────────────
+  function renderResults(data) {
+    const { matched = [], unmatched = [], ocr_text = "", notes = "" } = data;
+
+    const allergenResults = Array.from(selectedAllergens).map(key => {
+      const a        = ALLERGENS[key];
+      const derivSet = new Set(a.derivatives.map(d => d.toLowerCase()));
+      return {
+        key,
+        allergen: a,
+        matched:   matched.filter(m => derivSet.has(m.toLowerCase())),
+        unmatched: unmatched.filter(m => derivSet.has(m.toLowerCase()))
+      };
+    });
+
+    const anyDetected = allergenResults.some(r => r.matched.length > 0);
+
+    let html = `<div class="card">`;
+    html += `<div class="result-headline">${anyDetected ? "⚠️ Allergens Detected" : "✅ Looks Safe"}</div>`;
+
+    for (const r of allergenResults) {
+      const det = r.matched.length > 0;
+      html += `<div class="allergen-result">
+        <div class="allergen-result-header">
+          <span>${r.allergen.icon}</span>
+          <span>${r.allergen.label}</span>
+          <span class="status-badge ${det ? "badge-detected" : "badge-safe"}">${det ? "DETECTED" : "Not found"}</span>
+        </div>`;
+      if (det) {
+        html += `<div class="chip-row">`;
+        for (const item of r.matched) html += `<span class="chip chip-danger">${esc(item)}</span>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+
+    if (notes) {
+      html += `<div class="notes-box"><strong>🤖 AI Notes</strong>${esc(notes)}</div>`;
+    }
+
+    if (ocr_text) {
+      html += `<hr class="divider">
+        <details class="ocr-toggle">
+          <summary>View raw OCR text</summary>
+          <div class="ocr-text">${esc(ocr_text)}</div>
+        </details>`;
+    }
+
+    html += `</div>`;
+    resultsContainer.innerHTML = html;
+    resultsContainer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────────
+  renderToggles();
+</script>
+</body>
+</html>
